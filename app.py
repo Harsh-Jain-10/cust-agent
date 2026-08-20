@@ -5,10 +5,10 @@ A production-grade, multi-image visual customer support platform powered by
 Google Gemini (Dynamic Multimodal Engine & Fallback Ladder) & Streamlit.
 
 Features:
-- Ultra-modern cyberpunk/neon dark-mode glassmorphic design with micro-animations
-- Real-time optical inspection & multi-angle cross-verification (1 to 2 images)
-- Interactive Gamified Customer Reward & Compensation Hub with unlockable perks
-- Strict date anchoring & anti-hallucination grounding
+- Sleek, logical enterprise diagnostic workflow pipeline (Ingest -> OCR/Defect Triage -> Policy Audit -> Resolution Protocol)
+- Multi-angle visual evidence cross-verification (1 to 2 images)
+- Real-time sentiment, urgency triage & smart warranty policy evaluation
+- Real-world date anchoring & anti-hallucination grounding
 """
 
 import os
@@ -17,7 +17,6 @@ import re
 import time
 import json
 import uuid
-import random
 from datetime import datetime
 from typing import Optional, Tuple, Dict, Any, List
 
@@ -30,18 +29,18 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # =====================================================================
-# 1. PAGE CONFIGURATION & ANIMATED STYLING
+# 1. PAGE CONFIGURATION & SLEEK STYLING
 # =====================================================================
 st.set_page_config(
-    page_title="OmniSupport AI | Visual Support & Diagnostic Agent",
-    page_icon="⚡",
+    page_title="OmniSupport AI | Visual Support & Diagnostics",
+    page_icon="🛡️",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
 CUSTOM_CSS = """
 <style>
-/* ---------------- Main Theme & Fonts ---------------- */
+/* ---------------- Main Theme & Typography ---------------- */
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap');
 
 html, body, [class*="css"] {
@@ -51,212 +50,182 @@ html, body, [class*="css"] {
 
 /* Background Ambient Glow */
 .stApp {
-    background: radial-gradient(circle at 15% 10%, rgba(37, 99, 235, 0.12) 0%, transparent 45%),
-                radial-gradient(circle at 85% 20%, rgba(168, 85, 247, 0.12) 0%, transparent 45%),
-                radial-gradient(circle at 50% 90%, rgba(236, 72, 153, 0.08) 0%, transparent 50%),
-                #090D16;
+    background: radial-gradient(circle at 15% 10%, rgba(37, 99, 235, 0.1) 0%, transparent 45%),
+                radial-gradient(circle at 85% 20%, rgba(168, 85, 247, 0.1) 0%, transparent 45%),
+                radial-gradient(circle at 50% 90%, rgba(14, 165, 233, 0.06) 0%, transparent 50%),
+                #0B0F19;
 }
 
-/* Animated Glassmorphic Hero Banner */
+/* Glassmorphic Hero Banner */
 .hero-container {
     background: linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 41, 59, 0.7) 50%, rgba(15, 23, 42, 0.9) 100%);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 20px;
-    padding: 28px 36px;
-    margin-bottom: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 18px;
+    padding: 24px 32px;
+    margin-bottom: 20px;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7),
-                inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(20px);
-}
-
-.hero-container::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(96, 165, 250, 0.08) 0%, transparent 60%);
-    animation: rotateAura 15s linear infinite;
-    pointer-events: none;
-}
-
-@keyframes rotateAura {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    box-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.6),
+                inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(16px);
 }
 
 .hero-title {
-    background: linear-gradient(135deg, #60A5FA 0%, #C084FC 45%, #F472B6 100%);
-    background-size: 200% auto;
+    background: linear-gradient(135deg, #60A5FA 0%, #A78BFA 50%, #38BDF8 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    font-size: 2.6rem;
+    font-size: 2.3rem;
     font-weight: 800;
-    letter-spacing: -0.8px;
-    margin-bottom: 6px;
-    animation: gradientShift 6s ease infinite;
-}
-
-@keyframes gradientShift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
+    letter-spacing: -0.6px;
+    margin-bottom: 4px;
 }
 
 .hero-subtitle {
     color: #94A3B8;
-    font-size: 1.05rem;
+    font-size: 0.98rem;
     font-weight: 400;
     line-height: 1.5;
 }
 
-/* Futuristic Animated Metric Cards */
+/* Enterprise Metric Cards */
 .metric-box {
-    background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%);
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.65) 0%, rgba(15, 23, 42, 0.8) 100%);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 16px;
-    padding: 18px 20px;
+    border-radius: 14px;
+    padding: 16px 18px;
     text-align: center;
     backdrop-filter: blur(12px);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+    transition: all 0.25s ease;
+    box-shadow: 0 8px 20px -5px rgba(0, 0, 0, 0.4);
 }
 
 .metric-box:hover {
-    transform: translateY(-4px) scale(1.01);
-    border-color: rgba(96, 165, 250, 0.5);
-    box-shadow: 0 15px 30px -5px rgba(59, 130, 246, 0.3);
-}
-
-.metric-box::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 50%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
-    animation: shineSweep 4s infinite;
-}
-
-@keyframes shineSweep {
-    0% { left: -100%; }
-    20% { left: 200%; }
-    100% { left: 200%; }
+    transform: translateY(-3px);
+    border-color: rgba(96, 165, 250, 0.4);
+    box-shadow: 0 12px 25px -5px rgba(59, 130, 246, 0.25);
 }
 
 .metric-label {
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     text-transform: uppercase;
-    letter-spacing: 1.5px;
+    letter-spacing: 1.2px;
     color: #94A3B8;
     font-weight: 700;
 }
 
 .metric-value {
-    font-size: 1.5rem;
+    font-size: 1.45rem;
     font-weight: 800;
-    margin-top: 6px;
+    margin-top: 5px;
     letter-spacing: -0.5px;
 }
 
-/* Glowing Dynamic Sentiment & Priority Badges */
+/* Priority & Sentiment Badges */
 .badge-calm {
     color: #10B981;
     background: rgba(16, 185, 129, 0.15);
-    padding: 5px 14px;
-    border-radius: 30px;
+    padding: 4px 12px;
+    border-radius: 20px;
     font-weight: 700;
-    font-size: 0.85rem;
-    border: 1px solid rgba(16, 185, 129, 0.4);
-    box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
+    font-size: 0.82rem;
+    border: 1px solid rgba(16, 185, 129, 0.35);
 }
 
 .badge-frustrated {
     color: #F59E0B;
     background: rgba(245, 158, 11, 0.15);
-    padding: 5px 14px;
-    border-radius: 30px;
+    padding: 4px 12px;
+    border-radius: 20px;
     font-weight: 700;
-    font-size: 0.85rem;
-    border: 1px solid rgba(245, 158, 11, 0.4);
-    box-shadow: 0 0 15px rgba(245, 158, 11, 0.2);
+    font-size: 0.82rem;
+    border: 1px solid rgba(245, 158, 11, 0.35);
 }
 
 .badge-critical {
     color: #EF4444;
     background: rgba(239, 68, 68, 0.2);
-    padding: 5px 14px;
-    border-radius: 30px;
+    padding: 4px 12px;
+    border-radius: 20px;
     font-weight: 800;
-    font-size: 0.85rem;
-    border: 1px solid rgba(239, 68, 68, 0.5);
-    box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+    font-size: 0.82rem;
+    border: 1px solid rgba(239, 68, 68, 0.45);
     animation: neonPulse 1.8s infinite;
 }
 
 @keyframes neonPulse {
-    0% { transform: scale(1); box-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
-    50% { transform: scale(1.04); box-shadow: 0 0 25px rgba(239, 68, 68, 0.8); }
-    100% { transform: scale(1); box-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
+    0% { transform: scale(1); box-shadow: 0 0 10px rgba(239, 68, 68, 0.3); }
+    50% { transform: scale(1.03); box-shadow: 0 0 20px rgba(239, 68, 68, 0.6); }
+    100% { transform: scale(1); box-shadow: 0 0 10px rgba(239, 68, 68, 0.3); }
 }
 
-/* Gamified Reward & Compensation Hub */
-.reward-banner {
-    background: linear-gradient(135deg, rgba(217, 119, 6, 0.15) 0%, rgba(245, 158, 11, 0.25) 50%, rgba(217, 119, 6, 0.15) 100%);
-    border: 1px solid rgba(245, 158, 11, 0.4);
-    border-radius: 16px;
-    padding: 18px 24px;
-    margin: 18px 0;
-    box-shadow: 0 8px 25px rgba(245, 158, 11, 0.15);
+/* Logical Diagnostic Workflow Tracker */
+.pipeline-container {
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.75) 0%, rgba(30, 41, 59, 0.6) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    padding: 14px 20px;
+    margin: 16px 0;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 10px;
     backdrop-filter: blur(10px);
 }
 
-.reward-code-box {
-    background: #0B0F19;
-    border: 1px dashed #F59E0B;
-    border-radius: 8px;
-    padding: 6px 14px;
-    font-family: 'JetBrains Mono', monospace;
-    font-weight: 700;
-    color: #FDE68A;
-    letter-spacing: 1px;
+.pipeline-step {
+    flex: 1;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    padding: 10px 14px;
+    text-align: left;
+    transition: all 0.2s ease;
 }
 
-/* Cyberpunk Image Evidence Card */
+.pipeline-step-active {
+    background: rgba(59, 130, 246, 0.12);
+    border-color: rgba(96, 165, 250, 0.4);
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.15);
+}
+
+.pipeline-step-title {
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: #94A3B8;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+}
+
+.pipeline-step-active .pipeline-step-title {
+    color: #93C5FD;
+}
+
+.pipeline-step-status {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #F1F5F9;
+    margin-top: 2px;
+}
+
+/* Evidence Card Display */
 .evidence-card {
     background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.8) 100%);
-    border: 1px solid rgba(59, 130, 246, 0.35);
-    border-radius: 14px;
-    padding: 12px;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 12px;
+    padding: 10px;
     text-align: center;
     position: relative;
-    overflow: hidden;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
-    transition: all 0.3s ease;
-}
-
-.evidence-card:hover {
-    border-color: #60A5FA;
-    box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
 }
 
 .evidence-tag {
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     color: #93C5FD;
     font-weight: 700;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 }
 
 /* Active Engine Pill */
@@ -264,41 +233,29 @@ html, body, [class*="css"] {
     background: linear-gradient(90deg, rgba(59, 130, 246, 0.2) 0%, rgba(147, 51, 234, 0.2) 100%);
     border: 1px solid rgba(96, 165, 250, 0.4);
     color: #BFDBFE;
-    padding: 4px 10px;
-    border-radius: 8px;
-    font-size: 0.8rem;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 0.78rem;
     font-family: 'JetBrains Mono', monospace;
     font-weight: 600;
     display: inline-block;
 }
 
-/* Custom Chat Message Styling */
+/* Chat Message Box */
 .stChatMessage {
-    border-radius: 18px;
-    padding: 16px 22px;
-    margin-bottom: 16px;
+    border-radius: 16px;
+    padding: 14px 20px;
+    margin-bottom: 14px;
     background: rgba(15, 23, 42, 0.65) !important;
     border: 1px solid rgba(255, 255, 255, 0.08) !important;
     backdrop-filter: blur(12px);
-    animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* Quick prompt chips buttons */
+/* Buttons */
 button[kind="secondary"] {
-    border-radius: 12px !important;
-    transition: all 0.2s ease !important;
+    border-radius: 10px !important;
     font-weight: 600 !important;
-}
-
-button[kind="secondary"]:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(59, 130, 246, 0.25);
 }
 </style>
 """
@@ -309,7 +266,7 @@ st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 # 2. SESSION STATE MANAGEMENT
 # =====================================================================
 def init_session_state():
-    """Initializes all session state variables cleanly."""
+    """Initializes all necessary session state variables cleanly."""
     if "session_id" not in st.session_state:
         st.session_state.session_id = f"OS-{uuid.uuid4().hex[:6].upper()}"
     if "start_time" not in st.session_state:
@@ -325,15 +282,9 @@ def init_session_state():
     if "claim_status" not in st.session_state:
         st.session_state.claim_status = "Inquiry"
     if "detected_issue" not in st.session_state:
-        st.session_state.detected_issue = "Pending Analysis"
+        st.session_state.detected_issue = "Awaiting Verification"
     if "active_model_name" not in st.session_state:
         st.session_state.active_model_name = "Auto-Detecting..."
-    if "reward_xp" not in st.session_state:
-        st.session_state.reward_xp = 120
-    if "reward_claimed" not in st.session_state:
-        st.session_state.reward_claimed = False
-    if "reward_code" not in st.session_state:
-        st.session_state.reward_code = f"OMNI-VIP-{random.randint(1000, 9999)}"
     if "policy_config" not in st.session_state:
         st.session_state.policy_config = {
             "return_window_days": 30,
@@ -357,7 +308,7 @@ def generate_synthetic_demo_pairs(scenario_type: str) -> List[Dict[str, Any]]:
     pairs = []
     
     if scenario_type == "electronics":
-        # Image 1: Front Cracked Display
+        # Image 1: Front View with Screen Crack
         img1 = Image.new("RGB", (700, 420), color=(245, 247, 250))
         d1 = ImageDraw.Draw(img1)
         d1.rounded_rectangle([(150, 40), (550, 380)], radius=20, fill=(30, 41, 59), outline=(100, 116, 139), width=4)
@@ -372,7 +323,7 @@ def generate_synthetic_demo_pairs(scenario_type: str) -> List[Dict[str, Any]]:
         d1.text((235, 302), "⚠️ PHYSICAL DAMAGE: LCD IMPACT CRACK", fill=(255, 255, 255))
         pairs.append({"image": img1, "name": "device_angle_1_screen_crack.png"})
         
-        # Image 2: Rear Hardware Tag & Serial Number
+        # Image 2: Rear Enclosure & Serial Tag
         img2 = Image.new("RGB", (700, 420), color=(30, 41, 59))
         d2 = ImageDraw.Draw(img2)
         d2.rectangle([(160, 60), (540, 360)], fill=(15, 23, 42), outline=(71, 85, 105), width=3)
@@ -697,12 +648,10 @@ def build_claim_ticket_markdown() -> str:
     img_names = [img["name"] for img in st.session_state.current_images]
     evidence_str = ", ".join(img_names) if img_names else "No visual attachments"
     
-    ticket = f"""# ⚡ OmniSupport AI - Official Customer Claim & Diagnostic Ticket
+    ticket = f"""# 🛡️ OmniSupport AI - Official Customer Claim & Diagnostic Ticket
 **Ticket Reference ID:** `{st.session_state.session_id}`
 **Generated Date:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}
 **Active AI Engine:** `{st.session_state.active_model_name}`
-**Support XP Earned:** `{st.session_state.reward_xp} XP`
-**VIP Courtesy Voucher:** `{st.session_state.reward_code}` ({'REDEEMED' if st.session_state.reward_claimed else 'AVAILABLE'})
 **Session Duration:** {mins}m {secs}s
 **Total Interactions:** {len(st.session_state.messages)} messages
 
@@ -770,26 +719,22 @@ with st.sidebar:
         if st.button("📱 Screen + Tag", use_container_width=True):
             st.session_state.current_images = generate_synthetic_demo_pairs("electronics")
             st.session_state.preset_prompt = "I have attached photos of the cracked screen and the back model/serial label. Is this repair covered under standard warranty?"
-            st.session_state.reward_xp += 50
             st.rerun()
             
         if st.button("💊 Rx + Warnings", use_container_width=True):
             st.session_state.current_images = generate_synthetic_demo_pairs("pharmacy")
             st.session_state.preset_prompt = "I uploaded photos of the prescription bottle label and the storage instructions. Can you verify my dosage schedule and safety warnings?"
-            st.session_state.reward_xp += 50
             st.rerun()
 
     with col_p2:
         if st.button("🛍️ Invoice + Box", use_container_width=True):
             st.session_state.current_images = generate_synthetic_demo_pairs("retail_receipt")
             st.session_state.preset_prompt = "I have attached the store invoice and a photo of the product in its box. Can I return this item within the return window?"
-            st.session_state.reward_xp += 50
             st.rerun()
 
-        if col_p2.button("🚗 CEL + Scanner", use_container_width=True):
+        if st.button("🚗 CEL + Scanner", use_container_width=True):
             st.session_state.current_images = generate_synthetic_demo_pairs("automotive")
             st.session_state.preset_prompt = "I attached photos of the dashboard warning light and the OBD-II trouble code scanner. What does this code indicate and is it safe to drive?"
-            st.session_state.reward_xp += 50
             st.rerun()
 
     st.markdown("---")
@@ -826,11 +771,8 @@ with st.sidebar:
         st.session_state.sentiment = "Calm"
         st.session_state.urgency = "Normal"
         st.session_state.claim_status = "Inquiry"
-        st.session_state.detected_issue = "Pending Analysis"
+        st.session_state.detected_issue = "Awaiting Verification"
         st.session_state.active_model_name = "Auto-Detecting..."
-        st.session_state.reward_claimed = False
-        st.session_state.reward_xp = 120
-        st.session_state.reward_code = f"OMNI-VIP-{random.randint(1000, 9999)}"
         if "preset_prompt" in st.session_state:
             del st.session_state.preset_prompt
         st.rerun()
@@ -841,7 +783,7 @@ with st.sidebar:
 # =====================================================================
 st.markdown("""
 <div class="hero-container">
-    <div class="hero-title">⚡ OmniSupport AI</div>
+    <div class="hero-title">🛡️ OmniSupport AI</div>
     <div class="hero-subtitle">Next-Gen Multimodal Visual Diagnostics & Intelligent Customer Support Agent Powered by Gemini</div>
 </div>
 """, unsafe_allow_html=True)
@@ -887,39 +829,38 @@ with col_m4:
     </div>
     """, unsafe_allow_html=True)
 
-# =====================================================================
-# 8. EARNABLE CUSTOMER REWARD & COMPENSATION HUB
-# =====================================================================
-with st.container():
-    col_rw1, col_rw2 = st.columns([3, 1.2])
-    with col_rw1:
-        st.markdown(f"""
-        <div class="reward-banner">
-            <div>
-                <div style="font-size: 1.1rem; font-weight: 800; color: #FDE68A;">
-                    🎁 Customer Resolution Perk & Compensation Voucher
-                </div>
-                <div style="font-size: 0.85rem; color: #E2E8F0; margin-top: 2px;">
-                    Earn support credit & instant $25 repair voucher on verified claims. (Current Score: <b>{st.session_state.reward_xp} Support XP</b>)
-                </div>
-            </div>
-            <div class="reward-code-box">
-                {st.session_state.reward_code}
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-    with col_rw2:
-        st.markdown("<div style='margin-top: 18px;'></div>", unsafe_allow_html=True)
-        if not st.session_state.reward_claimed:
-            if st.button("✨ Claim $25 Perk Voucher", use_container_width=True, type="primary"):
-                st.session_state.reward_claimed = True
-                st.session_state.reward_xp += 100
-                st.balloons()
-                st.rerun()
-        else:
-            st.success("🎉 $25 Voucher Claimed & Active!", icon="⭐")
 
-st.markdown("<div style='margin-bottom: 12px;'></div>", unsafe_allow_html=True)
+# =====================================================================
+# 8. LOGICAL ENTERPRISE DIAGNOSTIC WORKFLOW PIPELINE
+# =====================================================================
+has_images = len(st.session_state.current_images) > 0
+has_chat = len(st.session_state.messages) > 0
+
+step1_active = "pipeline-step-active" if has_images else ""
+step2_active = "pipeline-step-active" if has_images and has_chat else ""
+step3_active = "pipeline-step-active" if has_chat else ""
+step4_active = "pipeline-step-active" if has_chat and st.session_state.claim_status != "Inquiry" else ""
+
+st.markdown(f"""
+<div class="pipeline-container">
+    <div class="pipeline-step {step1_active}">
+        <div class="pipeline-step-title">Stage 1: Evidence Ingest</div>
+        <div class="pipeline-step-status">{'✅ ' + str(len(st.session_state.current_images)) + ' Image(s) Attached' if has_images else '⏳ Awaiting Visuals'}</div>
+    </div>
+    <div class="pipeline-step {step2_active}">
+        <div class="pipeline-step-title">Stage 2: Optical Triage</div>
+        <div class="pipeline-step-status">{'🔍 OCR & Defect Analyzed' if has_images and has_chat else '⚡ Vision Matrix Ready'}</div>
+    </div>
+    <div class="pipeline-step {step3_active}">
+        <div class="pipeline-step-title">Stage 3: Policy Audit</div>
+        <div class="pipeline-step-status">{'📜 ' + str(st.session_state.policy_config['return_window_days']) + '-Day Window Verified' if has_chat else '🛡️ Rules Active'}</div>
+    </div>
+    <div class="pipeline-step {step4_active}">
+        <div class="pipeline-step-title">Stage 4: Resolution Plan</div>
+        <div class="pipeline-step-status">{st.session_state.claim_status}</div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 
 # =====================================================================
@@ -998,18 +939,17 @@ with st.expander(f"📷 Visual Evidence Chamber ({num_attached} / 2 Images Attac
 # 10. CHAT HISTORY DISPLAY
 # =====================================================================
 if not st.session_state.messages:
-    with st.chat_message("assistant", avatar="⚡"):
+    with st.chat_message("assistant", avatar="🛡️"):
         st.markdown("""
         **Hello! I'm OmniSupport AI**, your multimodal visual diagnostics and warranty specialist.
         
         How can I assist you today?
         - 📸 **Attach 1 or 2 photos** (physical damage, invoice/receipt, serial number tag) in the Evidence Chamber above.
         - 💬 Ask a question or use the **Quick Prompts** below or **Multi-Angle Presets** in the sidebar.
-        - 🎁 Don't forget to claim your **$25 Customer Resolution Voucher** in the perk bar above!
         """)
 
 for msg in st.session_state.messages:
-    avatar = "👤" if msg["role"] == "user" else "⚡"
+    avatar = "👤" if msg["role"] == "user" else "🛡️"
     with st.chat_message(msg["role"], avatar=avatar):
         if msg.get("images_attached"):
             st.caption(f"📎 Attached Evidence ({len(msg['images_attached'])} Images): `{', '.join(msg['images_attached'])}`")
@@ -1064,14 +1004,13 @@ if final_prompt:
             "images_attached": img_names if img_names else None
         }
         st.session_state.messages.append(user_entry)
-        st.session_state.reward_xp += 30
         
         with st.chat_message("user", avatar="👤"):
             if user_entry["images_attached"]:
                 st.caption(f"📎 Attached Evidence ({len(user_entry['images_attached'])} Images): `{', '.join(user_entry['images_attached'])}`")
             st.markdown(final_prompt)
             
-        with st.chat_message("assistant", avatar="⚡"):
+        with st.chat_message("assistant", avatar="🛡️"):
             with st.spinner(f"🤖 OmniSupport AI is cross-referencing {attached_count} visual evidence image(s) with active policies..."):
                 try:
                     response_text, meta, model_used = query_gemini_with_fallback(
