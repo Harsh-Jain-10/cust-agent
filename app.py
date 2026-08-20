@@ -4,12 +4,15 @@ OmniSupport AI: Multimodal Visual Customer Support & Diagnostic Agent
 A production-grade, multi-image visual customer support platform powered by
 Google Gemini (Dynamic Multimodal Engine & Fallback Ladder) & Streamlit.
 
-Supports multi-angle visual evidence inspection (2 to 5 images per claim).
+Supports multi-angle visual evidence inspection (2 to 5 images per claim)
+with strict real-world date grounding and zero-hallucination policy triage.
+
 Author: Principal Full-Stack AI Solutions Architect
 """
 
 import os
 import io
+import re
 import time
 import json
 import uuid
@@ -28,7 +31,7 @@ load_dotenv()
 # 1. PAGE CONFIGURATION & STYLING
 # =====================================================================
 st.set_page_config(
-    page_title="OmniSupport AI | Multi-Angle Visual Diagnostics",
+    page_title="OmniSupport AI | Multimodal Visual Diagnostics",
     page_icon="🛡️",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -202,7 +205,6 @@ def init_session_state():
         st.session_state.start_time = datetime.now()
     if "messages" not in st.session_state:
         st.session_state.messages = []
-    # Store list of dicts: [{"image": PIL.Image, "name": str}]
     if "current_images" not in st.session_state:
         st.session_state.current_images = []
     if "sentiment" not in st.session_state:
@@ -232,108 +234,108 @@ init_session_state()
 @st.cache_data(show_spinner=False)
 def generate_synthetic_demo_pairs(scenario_type: str) -> List[Dict[str, Any]]:
     """
-    Generates high-contrast visual diagnostic test pairs (at least 2 images)
-    so hackathon judges can immediately test multi-angle inspection in 1 click.
+    Generates realistic, clean diagnostic test fixtures (2 images)
+    without hardcoding fictional brand assumptions.
     """
     pairs = []
     
     if scenario_type == "electronics":
-        # Image 1: Front Cracked Screen
+        # Image 1: Front View with Screen Crack
         img1 = Image.new("RGB", (700, 420), color=(245, 247, 250))
         d1 = ImageDraw.Draw(img1)
         d1.rounded_rectangle([(150, 40), (550, 380)], radius=20, fill=(30, 41, 59), outline=(100, 116, 139), width=4)
         d1.rectangle([(170, 60), (530, 340)], fill=(15, 23, 42))
-        d1.text((220, 80), "OmniTech TabPro 11 [FRONT VIEW]", fill=(226, 232, 240))
-        d1.text((220, 110), "Status: Screen Fracture Detected", fill=(248, 113, 113))
+        d1.text((210, 80), "TOUCHSCREEN DEVICE [FRONT VIEW]", fill=(226, 232, 240))
+        d1.text((210, 110), "Status: Diagonal Glass Fracture Detected", fill=(248, 113, 113))
         crack_points = [(260, 180), (320, 230), (390, 210), (450, 270), (490, 260)]
         for i in range(len(crack_points) - 1):
             d1.line([crack_points[i], crack_points[i+1]], fill=(239, 68, 68), width=3)
         d1.line([(320, 230), (300, 290)], fill=(239, 68, 68), width=2)
-        d1.rectangle([(230, 295), (470, 325)], fill=(220, 38, 38))
-        d1.text((250, 302), "⚠️ PRIMARY ANGLE: LCD MATRIX CRACK", fill=(255, 255, 255))
-        pairs.append({"image": img1, "name": "angle_1_screen_crack.png"})
+        d1.rectangle([(220, 295), (480, 325)], fill=(220, 38, 38))
+        d1.text((235, 302), "⚠️ PHYSICAL DAMAGE: LCD IMPACT CRACK", fill=(255, 255, 255))
+        pairs.append({"image": img1, "name": "device_angle_1_screen_crack.png"})
         
-        # Image 2: Rear Hardware Tag & Serial Number
+        # Image 2: Rear View with Model / Serial Tag
         img2 = Image.new("RGB", (700, 420), color=(30, 41, 59))
         d2 = ImageDraw.Draw(img2)
         d2.rectangle([(160, 60), (540, 360)], fill=(15, 23, 42), outline=(71, 85, 105), width=3)
-        d2.text((200, 90), "OMNITECH ELECTRONICS CORP", fill=(226, 232, 240))
-        d2.text((200, 120), "REAR CHASSIS IDENTIFICATION TAG", fill=(96, 165, 250))
+        d2.text((210, 90), "HARDWARE IDENTIFICATION PLATE", fill=(226, 232, 240))
+        d2.text((210, 120), "REAR ENCLOSURE & SERIAL INFO", fill=(96, 165, 250))
         d2.line([(180, 150), (520, 150)], fill=(51, 65, 85), width=2)
-        d2.text((180, 170), "Model: OT-900X TabPro 11 (256GB)", fill=(203, 213, 225))
-        d2.text((180, 200), "Serial Number: SN-88349-B2", fill=(52, 211, 153))
-        d2.text((180, 230), "Mfg Date: 05/2024 | Rating: 15V 3A", fill=(148, 163, 184))
+        d2.text((180, 170), "Model: Standard Mobile Unit (128GB)", fill=(203, 213, 225))
+        d2.text((180, 200), "Serial No: SN-90482-TX", fill=(52, 211, 153))
+        d2.text((180, 230), "Rated Input: 5V 2A | FCC ID: Approved", fill=(148, 163, 184))
         d2.text((180, 260), "Barcode: ||| |||| || ||||| |||| |||", fill=(226, 232, 240))
-        d2.text((180, 290), "Warranty Seal: INTACT / UNBROKEN", fill=(16, 185, 129))
-        pairs.append({"image": img2, "name": "angle_2_serial_tag.png"})
+        d2.text((180, 290), "Tamper Seal: Intact", fill=(16, 185, 129))
+        pairs.append({"image": img2, "name": "device_angle_2_serial_tag.png"})
 
     elif scenario_type == "retail_receipt":
-        # Image 1: Retail Receipt
+        # Image 1: Purchase Receipt
         img1 = Image.new("RGB", (700, 420), color=(255, 255, 255))
         d1 = ImageDraw.Draw(img1)
         d1.rectangle([(160, 20), (540, 400)], fill=(255, 255, 255), outline=(203, 213, 225), width=2)
-        d1.text((240, 40), "APEX STORE RECEIPT", fill=(15, 23, 42))
-        d1.text((240, 60), "Store #104 - Order #INV-94021", fill=(100, 116, 139))
+        d1.text((230, 40), "OFFICIAL SALES RECEIPT", fill=(15, 23, 42))
+        d1.text((230, 60), "Retail Store #204 - Order #INV-84920", fill=(100, 116, 139))
         d1.line([(180, 85), (520, 85)], fill=(203, 213, 225), width=1)
-        d1.text((180, 100), "Date of Purchase: 12-Days Ago", fill=(51, 65, 85))
-        d1.text((180, 130), "Item: UltraNoiseCancelling Headset Gen 2", fill=(15, 23, 42))
-        d1.text((180, 160), "SKU: 7729104 | Qty: 1 | Total: $249.99", fill=(15, 23, 42))
-        d1.text((180, 190), "Return Policy: 30-Day Money Back Guarantee", fill=(100, 116, 139))
-        pairs.append({"image": img1, "name": "evidence_1_official_receipt.png"})
+        d1.text((180, 100), "Date of Purchase: Recent (10 Days Ago)", fill=(51, 65, 85))
+        d1.text((180, 130), "Item: Wireless Bluetooth Headset", fill=(15, 23, 42))
+        d1.text((180, 160), "SKU: 6592014 | Qty: 1 | Total: $179.99", fill=(15, 23, 42))
+        d1.text((180, 190), "Terms: 30-Day Return on Unopened Items", fill=(100, 116, 139))
+        pairs.append({"image": img1, "name": "purchase_receipt_inv84920.png"})
 
-        # Image 2: Product Box / Condition
+        # Image 2: Unopened Product Box
         img2 = Image.new("RGB", (700, 420), color=(241, 245, 249))
         d2 = ImageDraw.Draw(img2)
         d2.rectangle([(150, 40), (550, 380)], fill=(30, 41, 59), outline=(96, 165, 250), width=3)
         d2.text((200, 80), "PRODUCT PACKAGING AUDIT", fill=(226, 232, 240))
-        d2.text((200, 110), "Headset Gen 2 - SKU 7729104", fill=(148, 163, 184))
+        d2.text((200, 110), "Headset Package - SKU 6592014", fill=(148, 163, 184))
         d2.rectangle([(180, 150), (520, 270)], fill=(15, 23, 42))
-        d2.text((200, 180), "Condition: Sealed Box / Factory Shrinkwrap", fill=(52, 211, 153))
+        d2.text((200, 180), "Packaging State: Factory Sealed in Shrinkwrap", fill=(52, 211, 153))
         d2.text((200, 210), "UPC Barcode: 8 94820 01842 1", fill=(203, 213, 225))
-        d2.text((200, 240), "Physical Damage: None (Mint Condition)", fill=(52, 211, 153))
-        pairs.append({"image": img2, "name": "evidence_2_sealed_box.png"})
+        d2.text((200, 240), "Item Condition: Mint / Undamaged", fill=(52, 211, 153))
+        pairs.append({"image": img2, "name": "product_packaging_sealed.png"})
 
     elif scenario_type == "pharmacy":
-        # Image 1: Front Prescription Label
+        # Image 1: Prescription Label
         img1 = Image.new("RGB", (700, 420), color=(254, 243, 199))
         d1 = ImageDraw.Draw(img1)
         d1.rectangle([(150, 40), (550, 380)], fill=(254, 243, 199), outline=(217, 119, 6), width=3)
         d1.rectangle([(170, 60), (530, 130)], fill=(30, 58, 138))
-        d1.text((220, 75), "CAREPLUS PHARMACY RX #67849", fill=(255, 255, 255))
-        d1.text((220, 100), "Dr. Emily Hayes, MD | Refills: 2", fill=(191, 219, 254))
+        d1.text((220, 75), "HEALTHCARE RX BOTTLE #RX-48201", fill=(255, 255, 255))
+        d1.text((220, 100), "Prescribing Physician: General Clinic", fill=(191, 219, 254))
         d1.text((180, 150), "Medication: AMOXICILLIN 500MG CAPSULES", fill=(15, 23, 42))
-        d1.text((180, 180), "Dosage: Take 1 capsule by mouth every 8 hours", fill=(180, 83, 9))
-        pairs.append({"image": img1, "name": "rx_label_front.png"})
+        d1.text((180, 180), "Directions: Take 1 capsule by mouth every 8 hours", fill=(180, 83, 9))
+        pairs.append({"image": img1, "name": "prescription_label_front.png"})
 
-        # Image 2: Warning & Storage Details
+        # Image 2: Warnings & Expiration
         img2 = Image.new("RGB", (700, 420), color=(255, 251, 235))
         d2 = ImageDraw.Draw(img2)
         d2.rectangle([(150, 40), (550, 380)], fill=(255, 255, 255), outline=(239, 68, 68), width=3)
-        d2.text((200, 70), "MEDICATION WARNING & STORAGE INSTRUCTIONS", fill=(185, 28, 28))
+        d2.text((200, 70), "SAFETY INSTRUCTIONS & STORAGE INFO", fill=(185, 28, 28))
         d2.line([(170, 100), (530, 100)], fill=(252, 165, 165), width=2)
         d2.text((180, 120), "1. Complete entire 10-day prescribed course.", fill=(15, 23, 42))
-        d2.text((180, 150), "2. Store between 20°C - 25°C (68°F - 77°F).", fill=(51, 65, 85))
-        d2.text((180, 180), "3. Keep away from excessive moisture.", fill=(51, 65, 85))
-        d2.text((180, 210), "Lot: #L88392 | Exp Date: 12/2026", fill=(180, 83, 9))
-        pairs.append({"image": img2, "name": "rx_storage_warnings.png"})
+        d2.text((180, 150), "2. Store between 20°C - 25°C in dry conditions.", fill=(51, 65, 85))
+        d2.text((180, 180), "3. Keep out of reach of children.", fill=(51, 65, 85))
+        d2.text((180, 210), "Lot: #L88392 | Exp: Valid until 2027", fill=(180, 83, 9))
+        pairs.append({"image": img2, "name": "prescription_storage_warnings.png"})
 
     else:
-        # Automotive Preset: Cluster Light + OBD Diagnostic Reader
+        # Automotive: Dashboard CEL + OBD Code
         img1 = Image.new("RGB", (700, 420), color=(17, 24, 39))
         d1 = ImageDraw.Draw(img1)
         d1.circle((350, 200), 60, fill=(239, 68, 68, 50), outline=(239, 68, 68), width=4)
         d1.text((315, 185), "CHECK\nENGINE", fill=(254, 202, 202))
-        d1.text((220, 290), "Dashboard Gauge Cluster: Active CEL", fill=(251, 191, 36))
-        pairs.append({"image": img1, "name": "auto_dashboard_cel.png"})
+        d1.text((220, 290), "Dashboard Gauge Cluster: Active CEL Alarm", fill=(251, 191, 36))
+        pairs.append({"image": img1, "name": "dashboard_check_engine_light.png"})
 
         img2 = Image.new("RGB", (700, 420), color=(15, 23, 42))
         d2 = ImageDraw.Draw(img2)
         d2.rectangle([(140, 50), (560, 370)], fill=(30, 41, 59), outline=(96, 165, 250), width=3)
-        d2.text((180, 80), "OBD-II DIGITAL DIAGNOSTIC SCANNER", fill=(226, 232, 240))
-        d2.text((180, 120), "Diagnostic Trouble Code: P0420", fill=(239, 68, 68))
+        d2.text((180, 80), "OBD-II DIAGNOSTIC SCANNER OUTPUT", fill=(226, 232, 240))
+        d2.text((180, 120), "Trouble Code: P0420", fill=(239, 68, 68))
         d2.text((180, 150), "Description: Catalyst System Efficiency Below Threshold", fill=(251, 191, 36))
-        d2.text((180, 180), "Bank: 1 | Severity: High | Freeze Frame: Stored", fill=(148, 163, 184))
-        pairs.append({"image": img2, "name": "auto_obd_scanner_p0420.png"})
+        d2.text((180, 180), "Severity: Moderate | Diagnostic Status: Confirmed Fault", fill=(148, 163, 184))
+        pairs.append({"image": img2, "name": "obd_scanner_fault_code.png"})
 
     return pairs
 
@@ -394,23 +396,40 @@ def resolve_available_models(api_key: str) -> List[str]:
 
 
 def get_system_prompt(policy: Dict[str, Any], num_images: int) -> str:
-    """Constructs the operational prompt with multi-image cross-referencing capabilities."""
+    """
+    Constructs the operational prompt with strict date anchoring,
+    zero-hallucination rules, and structured multi-asset cross-verification.
+    """
+    current_date_str = datetime.now().strftime("%B %d, %Y")
+    current_iso_date = datetime.now().strftime("%Y-%m-%d")
+    
     return f"""
 You are OmniSupport AI, an elite Principal Multimodal Customer Support & Visual Diagnostic Agent.
-Your objective is to provide compassionate, precise, and highly actionable customer support while visually inspecting customer evidence across multiple attached image angles ({num_images} images provided).
+Your objective is to provide compassionate, precise, objective, and highly actionable customer support while visually inspecting customer evidence across multiple attached image angles ({num_images} images provided).
+
+CURRENT REAL-WORLD DATE REFERENCE:
+- Today's Date: {current_date_str} (ISO: {current_iso_date}).
+- Use today's date to accurately evaluate receipt/invoice purchase dates against the active return window. For example, if a receipt is from 2024 or earlier, it is clearly in the past relative to {current_date_str}. Do NOT mistake past purchase dates for future dates.
 
 ACTIVE COMPANY POLICIES & BUSINESS RULES:
-- Standard Return Window: {policy.get('return_window_days', 30)} days from purchase.
-- Accidental Damage Coverage: {'INCLUDED in policy' if policy.get('covers_accidental') else 'EXCLUDED (Requires warranty upgrade or supervisor approval unless manufacturer defect)'}.
-- Proof of Purchase Requirement: {'MANDATORY (Receipt, invoice, or serial number required)' if policy.get('require_receipt') else 'OPTIONAL'}.
-- Fast Replacement Protocol: {'ENABLED for verified structural defects' if policy.get('allow_fast_replacement') else 'STANDARD REPAIR QUEUE ONLY'}.
+- Standard Return Window: {policy.get('return_window_days', 30)} days from invoice purchase date.
+- Accidental Damage Coverage: {'INCLUDED in policy' if policy.get('covers_accidental') else 'EXCLUDED under standard warranty (accidental physical damage such as screen cracks, liquid spills, or impact drops is NOT covered under standard manufacturer warranty, requiring out-of-warranty paid repair or dedicated accidental protection plans)'}.
+- Proof of Purchase Requirement: {'MANDATORY (Official receipt or invoice is required for warranty/return claims)' if policy.get('require_receipt') else 'OPTIONAL'}.
+- Fast Replacement Protocol: {'ENABLED for verified manufacturer structural defects' if policy.get('allow_fast_replacement') else 'STANDARD REPAIR QUEUE ONLY'}.
 
-CORE RESPONSIBILITIES:
-1. MULTI-IMAGE VISUAL REASONING: Cross-reference ALL attached images (e.g. compare front defect vs rear serial number tag, or compare receipt SKU with product packaging). Highlight matches or discrepancies between the images clearly.
-2. POLICY & WARRANTY EVALUATION: Evaluate if the issue qualifies for return, free replacement, warranty repair, or standard troubleshooting based on the combined visual evidence.
-3. EMPATHIC COMMUNICATION: Adapt your tone to the customer's sentiment. If they are distressed or angry, validate their feelings and prioritize swift resolution.
-4. STRUCTURED NEXT STEPS: Provide step-by-step guidance, troubleshooting tips, or RMA/Return instructions.
-5. METADATA EXTRACTION: At the very end of your response, ALWAYS output a hidden JSON metadata block enclosed in `---OMNI_METADATA_START---` and `---OMNI_METADATA_END---`.
+CRITICAL ANTI-HALLUCINATION & EVIDENCE GROUNDING RULES:
+1. STRICT VISUAL GROUNDING: Rely ONLY on text and details directly visible in the uploaded images or explicitly provided in the user's message.
+2. NO FICTIONAL BIAS: Never assume fictional model names, brands, or serial numbers. If an image shows an Apple iPhone, Android phone, receipt, or other real device, identify and extract the EXACT brand, model, and invoice text visible in the image. If unbranded or unreadable, describe it generically (e.g., "touchscreen smartphone with shattered OLED display").
+3. MULTI-ASSET CROSS-VERIFICATION: When multiple images are provided (e.g., physical item damage + invoice/receipt document):
+   - Image 1 (Physical Item): Document the exact damage location, physical crack pattern, and cosmetic state.
+   - Image 2 (Invoice / Receipt / Tag): Extract the Store Name, Invoice / Order Number, Date of Purchase, Item Purchased (e.g. Apple iPhone 13, Headset, etc.), and Total Amount.
+   - Cross-Verification & Warranty Verdict: Cross-reference whether the item shown in the damage photo matches the invoice, calculate days elapsed since purchase date against the {policy.get('return_window_days', 30)}-day window, and explicitly determine if the observed damage (e.g., cracked screen) is covered under standard warranty or excluded as accidental physical damage.
+4. ACTIONABLE GUIDANCE: Provide clear next steps (e.g., Authorized Service Center out-of-warranty repair quote options, accidental protection claim steps, or RMA return procedures).
+5. STRUCTURED RESPONSE FORMAT: Format your response clearly with bold headers:
+   - 🔍 **Visual Evidence & Cross-Verification Findings**
+   - 📜 **Policy & Warranty Evaluation**
+   - 🛠️ **Recommended Action Plan & Next Steps**
+6. METADATA EXTRACTION: At the very end of your response, ALWAYS output a hidden JSON metadata block enclosed in `---OMNI_METADATA_START---` and `---OMNI_METADATA_END---`.
 
 JSON SCHEMA TO INCLUDE IN THE METADATA BLOCK:
 ```json
@@ -419,19 +438,19 @@ JSON SCHEMA TO INCLUDE IN THE METADATA BLOCK:
   "urgency": "Normal" | "High" | "Urgent",
   "detected_issue": "Brief 3-6 word summary of detected issue",
   "claim_status": "Approved" | "Requires Inspection" | "Inquiry" | "Ineligible" | "Escalated",
-  "action_recommended": "Specific next action for support rep or automated RMA"
+  "action_recommended": "Specific next action for support rep or customer"
 }}
 ```
 
-Ensure your direct message to the customer is professional, warm, clear, and structured with bold highlights and bullet points.
+Ensure your customer-facing message is empathetic, professional, clear, and cleanly formatted without raw JSON leaking into the main text.
 """
 
 
 def parse_agent_response(full_text: str) -> Tuple[str, Dict[str, Any]]:
-    """Separates the customer-facing message from the agent metadata JSON."""
-    meta_start = full_text.find("---OMNI_METADATA_START---")
-    meta_end = full_text.find("---OMNI_METADATA_END---")
-    
+    """
+    Robustly separates the customer-facing message from the agent metadata JSON.
+    Guarantees no raw metadata delimiters or json blocks leak into the user chat.
+    """
     metadata = {
         "sentiment": "Calm",
         "urgency": "Normal",
@@ -440,27 +459,38 @@ def parse_agent_response(full_text: str) -> Tuple[str, Dict[str, Any]]:
         "action_recommended": "Continue Conversation"
     }
     
-    if meta_start != -1 and meta_end != -1:
-        clean_text = full_text[:meta_start].strip()
-        json_str = full_text[meta_start + len("---OMNI_METADATA_START---"):meta_end].strip()
+    # 1. Regex search for metadata block
+    pattern = r"---OMNI_METADATA_START---(.*?)---OMNI_METADATA_END---"
+    match = re.search(pattern, full_text, flags=re.DOTALL)
+    
+    if match:
+        clean_text = full_text[:match.start()].strip()
+        json_content = match.group(1).strip()
         
-        if json_str.startswith("```json"):
-            json_str = json_str[7:]
-        elif json_str.startswith("```"):
-            json_str = json_str[3:]
-        if json_str.endswith("```"):
-            json_str = json_str[:-3]
-        json_str = json_str.strip()
+        # Strip markdown code fences if present inside the tag
+        if json_content.startswith("```json"):
+            json_content = json_content[7:]
+        elif json_content.startswith("```"):
+            json_content = json_content[3:]
+        if json_content.endswith("```"):
+            json_content = json_content[:-3]
+        json_content = json_content.strip()
         
         try:
-            parsed = json.loads(json_str)
+            parsed = json.loads(json_content)
             if isinstance(parsed, dict):
                 metadata.update(parsed)
         except Exception:
             pass
+            
         return clean_text, metadata
     
-    return full_text, metadata
+    # 2. Fallback: Check if delimiter was partially written without ending tag
+    if "---OMNI_METADATA_START---" in full_text:
+        clean_text = full_text.split("---OMNI_METADATA_START---")[0].strip()
+        return clean_text, metadata
+        
+    return full_text.strip(), metadata
 
 
 def query_gemini_with_fallback(
@@ -487,13 +517,13 @@ def query_gemini_with_fallback(
     # Construct multi-image content parts
     current_parts = []
     if images:
-        current_parts.append(f"[Customer attached {len(images)} multi-angle visual evidence images for cross-inspection]:")
+        current_parts.append(f"[Customer attached {len(images)} visual evidence images for multimodal cross-inspection]:")
         for idx, img_entry in enumerate(images, 1):
             raw_img = img_entry["image"]
             if raw_img.mode != "RGB":
                 raw_img = raw_img.convert("RGB")
             current_parts.append(raw_img)
-            current_parts.append(f"Image {idx} Reference: {img_entry['name']}")
+            current_parts.append(f"Image {idx} Filename: {img_entry['name']}")
         current_parts.append(f"Customer Inquiry: {user_prompt}")
     else:
         current_parts.append(user_prompt)
@@ -523,8 +553,8 @@ def query_gemini_with_fallback(
                 formatted_contents.append({"role": "user", "parts": current_parts})
             
             generation_config = genai.types.GenerationConfig(
-                temperature=0.3,
-                max_output_tokens=1500,
+                temperature=0.2,
+                max_output_tokens=1800,
             )
             
             response = model.generate_content(
@@ -580,7 +610,7 @@ def build_claim_ticket_markdown() -> str:
 
 ## 📜 2. APPLIED WARRANTY & STORE POLICIES
 - **Policy Window:** {st.session_state.policy_config.get('return_window_days', 30)} Days Return
-- **Accidental Damage Covered:** {'Yes' if st.session_state.policy_config.get('covers_accidental') else 'No (Standard Defect Only)'}
+- **Accidental Damage Covered:** {'Yes' if st.session_state.policy_config.get('covers_accidental') else 'No (Physical/Accidental Damage Excluded from Standard Warranty)'}
 - **Proof of Purchase Required:** {'Yes' if st.session_state.policy_config.get('require_receipt') else 'No'}
 - **Fast-Track Replacement:** {'Authorized' if st.session_state.policy_config.get('allow_fast_replacement') else 'Standard Inspection Queue'}
 
@@ -624,29 +654,29 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("### 🧪 Multi-Angle Demo Presets")
-    st.caption("Load 2 complementary visual evidence images in 1-click:")
+    st.caption("Load 2 real-world evidence test pairs in 1-click:")
     
     col_p1, col_p2 = st.columns(2)
     with col_p1:
-        if st.button("📱 2x Electronics", use_container_width=True):
+        if st.button("📱 Screen Damage + Tag", use_container_width=True):
             st.session_state.current_images = generate_synthetic_demo_pairs("electronics")
-            st.session_state.preset_prompt = "I have attached photos of both the cracked screen and the back serial tag. Is this eligible for a warranty replacement?"
+            st.session_state.preset_prompt = "I have attached photos of the cracked screen and the back model/serial label. Is this repair covered under standard warranty?"
             st.rerun()
             
-        if st.button("💊 2x Rx Labels", use_container_width=True):
+        if st.button("💊 Rx Bottle + Directions", use_container_width=True):
             st.session_state.current_images = generate_synthetic_demo_pairs("pharmacy")
-            st.session_state.preset_prompt = "I uploaded both the front prescription label and the back storage warning label. Please verify dosage and safety rules."
+            st.session_state.preset_prompt = "I uploaded photos of the prescription bottle label and the storage instructions. Can you verify my dosage schedule and safety warnings?"
             st.rerun()
 
     with col_p2:
-        if st.button("🛍️ 2x Receipt+Box", use_container_width=True):
+        if st.button("🛍️ Invoice + Item Box", use_container_width=True):
             st.session_state.current_images = generate_synthetic_demo_pairs("retail_receipt")
-            st.session_state.preset_prompt = "I attached both my store invoice and the sealed product box. Can I get a full refund?"
+            st.session_state.preset_prompt = "I have attached the store invoice and a photo of the product in its box. Can I return this item within the return window?"
             st.rerun()
 
-        if st.button("🚗 2x CEL+Scanner", use_container_width=True):
+        if st.button("🚗 Warning Light + OBD", use_container_width=True):
             st.session_state.current_images = generate_synthetic_demo_pairs("automotive")
-            st.session_state.preset_prompt = "I attached photos of the dashboard warning light and the OBD-II diagnostic trouble code report. What is the diagnosis?"
+            st.session_state.preset_prompt = "I attached photos of the dashboard warning light and the OBD-II trouble code scanner. What does this code indicate and is it safe to drive?"
             st.rerun()
 
     st.markdown("---")
@@ -783,7 +813,6 @@ with st.expander(f"📷 Multi-Angle Evidence Chamber ({num_attached} / 5 Images 
                 else:
                     cam_img = Image.open(camera_file)
                     cam_name = f"webcam_angle_{len(st.session_state.current_images) + 1}_{int(time.time())}.png"
-                    # Prevent duplicate additions of the same camera snapshot
                     if not any(img["name"] == cam_name for img in st.session_state.current_images):
                         st.session_state.current_images.append({"image": cam_img, "name": cam_name})
                         st.rerun()
@@ -791,11 +820,11 @@ with st.expander(f"📷 Multi-Angle Evidence Chamber ({num_attached} / 5 Images 
     # Visual Evidence Validation Banner
     curr_count = len(st.session_state.current_images)
     if curr_count == 0:
-        st.info("💡 **Evidence Requirement:** Please select or upload **at least 2 and at most 5 images** (e.g. front damage, rear serial number, invoice receipt, or packaging) or click a **Demo Preset** on the sidebar.", icon="ℹ️")
+        st.info("💡 **Evidence Requirement:** Please upload **at least 2 and at most 5 images** (e.g. damaged item photo + invoice / receipt) or click a **Demo Preset** on the sidebar.", icon="ℹ️")
     elif curr_count == 1:
-        st.warning("⚠️ **1 Image Attached:** Standard multi-angle diagnostic protocol requires **at least 2 images** (at most 5) for complete verification.", icon="📸")
+        st.warning("⚠️ **1 Image Attached:** Standard multi-angle diagnostic protocol recommends **at least 2 images** (damaged item + proof of purchase/serial tag) for complete cross-verification.", icon="📸")
     elif 2 <= curr_count <= 5:
-        st.success(f"✅ **Multi-Angle Evidence Ready:** {curr_count} evidence angles attached (Within 2 to 5 image limit).", icon="🎯")
+        st.success(f"✅ **Multi-Angle Evidence Ready:** {curr_count} evidence files attached (Within 2 to 5 image limit).", icon="🎯")
     else:
         st.error(f"🚫 **Too many images ({curr_count}):** Please keep attached images between 2 and 5.", icon="🛑")
 
@@ -827,7 +856,7 @@ if not st.session_state.messages:
         **Hello! I'm OmniSupport AI**, your multimodal visual diagnostics and warranty specialist.
         
         How can I help you today?
-        - 📸 **Attach 2 to 5 photos** (front defect, back serial tag, invoice, or warning lights) in the Evidence Chamber above.
+        - 📸 **Attach 2 to 5 photos** (physical damage, invoice/receipt, serial number tag) in the Evidence Chamber above.
         - 💬 Ask a question or use the **Quick Prompts** below or **Multi-Angle Presets** in the sidebar.
         """)
 
@@ -847,17 +876,17 @@ qc1, qc2, qc3, qc4 = st.columns(4)
 
 preset_triggered = None
 with qc1:
-    if st.button("🔍 Check Return Eligibility", use_container_width=True):
-        preset_triggered = "Can you cross-reference all attached images (receipt and item condition) to verify if I qualify for a return?"
+    if st.button("🔍 Cross-Verify Claim & Receipt", use_container_width=True):
+        preset_triggered = "Can you cross-reference the physical damage with my invoice/receipt to check return or warranty claim eligibility?"
 with qc2:
     if st.button("🛠️ Multi-Angle Diagnosis", use_container_width=True):
         preset_triggered = "Please inspect all attached evidence photos and provide step-by-step diagnostic troubleshooting."
 with qc3:
-    if st.button("🧾 Audit Serial & Invoice", use_container_width=True):
-        preset_triggered = "Can you verify if the serial number on the product tag matches the invoice SKU across the attached images?"
+    if st.button("🧾 Audit Invoice & SKU", use_container_width=True):
+        preset_triggered = "Can you extract the invoice number, purchase date, item name, and store details from the attached receipt?"
 with qc4:
-    if st.button("⚡ Request Rapid RMA", use_container_width=True):
-        preset_triggered = "The item is defective on arrival. I have attached all required photo evidence. Please authorize a rapid RMA ticket."
+    if st.button("⚡ Request Rapid RMA / Repair", use_container_width=True):
+        preset_triggered = "I have attached photos of the item defect and proof of purchase. Please evaluate whether this qualifies for warranty repair or replacement."
 
 if "preset_prompt" in st.session_state and st.session_state.preset_prompt:
     preset_triggered = st.session_state.preset_prompt
@@ -875,11 +904,8 @@ if final_prompt:
     if not active_api_key:
         st.error("🔑 Please provide a valid Google Gemini API Key in the sidebar or .env file to proceed.", icon="🚨")
     else:
-        # Validate 2-5 image count rule if user has attached any images
         attached_count = len(st.session_state.current_images)
-        if attached_count == 1:
-            st.warning("⚠️ Notice: For optimal diagnostic precision, standard policy requires **at least 2 images** (up to 5). Proceeding with current single image...", icon="⚠️")
-        elif attached_count > 5:
+        if attached_count > 5:
             st.error("🛑 Please remove excess images so that at most 5 images are attached.", icon="🛑")
             st.stop()
             
@@ -897,7 +923,7 @@ if final_prompt:
             st.markdown(final_prompt)
             
         with st.chat_message("assistant", avatar="🛡️"):
-            with st.spinner(f"🤖 OmniSupport AI is cross-referencing {attached_count} visual evidence image(s) & policy rules..."):
+            with st.spinner(f"🤖 OmniSupport AI is cross-referencing {attached_count} visual evidence image(s) with active policies..."):
                 try:
                     response_text, meta, model_used = query_gemini_with_fallback(
                         api_key=active_api_key,
