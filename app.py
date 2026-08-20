@@ -48,6 +48,33 @@ html, body, [class*="css"] {
     color-scheme: dark;
 }
 
+/* Smooth Scrolling & Custom Scrollbars */
+html {
+    scroll-behavior: smooth;
+}
+
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.6);
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(59, 130, 246, 0.4);
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(96, 165, 250, 0.7);
+}
+
+/* Main Container Bottom Padding (Prevents Chat Input Overlap) */
+.main .block-container {
+    padding-top: 1.5rem !important;
+    padding-bottom: 140px !important;
+    max-width: 1200px !important;
+}
+
 /* Background Ambient Glow */
 .stApp {
     background: radial-gradient(circle at 15% 10%, rgba(37, 99, 235, 0.1) 0%, transparent 45%),
@@ -61,8 +88,8 @@ html, body, [class*="css"] {
     background: linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 41, 59, 0.7) 50%, rgba(15, 23, 42, 0.9) 100%);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 18px;
-    padding: 24px 32px;
-    margin-bottom: 20px;
+    padding: 22px 28px;
+    margin-bottom: 16px;
     position: relative;
     overflow: hidden;
     box-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.6),
@@ -74,7 +101,7 @@ html, body, [class*="css"] {
     background: linear-gradient(135deg, #60A5FA 0%, #A78BFA 50%, #38BDF8 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    font-size: 2.3rem;
+    font-size: 2.2rem;
     font-weight: 800;
     letter-spacing: -0.6px;
     margin-bottom: 4px;
@@ -82,9 +109,9 @@ html, body, [class*="css"] {
 
 .hero-subtitle {
     color: #94A3B8;
-    font-size: 0.98rem;
+    font-size: 0.95rem;
     font-weight: 400;
-    line-height: 1.5;
+    line-height: 1.4;
 }
 
 /* Enterprise Metric Cards */
@@ -92,7 +119,7 @@ html, body, [class*="css"] {
     background: linear-gradient(135deg, rgba(30, 41, 59, 0.65) 0%, rgba(15, 23, 42, 0.8) 100%);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 14px;
-    padding: 16px 18px;
+    padding: 14px 16px;
     text-align: center;
     backdrop-filter: blur(12px);
     transition: all 0.25s ease;
@@ -114,9 +141,9 @@ html, body, [class*="css"] {
 }
 
 .metric-value {
-    font-size: 1.45rem;
+    font-size: 1.4rem;
     font-weight: 800;
-    margin-top: 5px;
+    margin-top: 4px;
     letter-spacing: -0.5px;
 }
 
@@ -158,28 +185,34 @@ html, body, [class*="css"] {
     100% { transform: scale(1); box-shadow: 0 0 10px rgba(239, 68, 68, 0.3); }
 }
 
-/* Logical Diagnostic Workflow Tracker */
+/* Responsive Diagnostic Workflow Tracker */
 .pipeline-container {
     background: linear-gradient(135deg, rgba(15, 23, 42, 0.75) 0%, rgba(30, 41, 59, 0.6) 100%);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 14px;
-    padding: 14px 20px;
-    margin: 16px 0;
+    padding: 12px 16px;
+    margin: 14px 0;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 10px;
+    flex-wrap: wrap;
+    gap: 8px;
     backdrop-filter: blur(10px);
 }
 
 .pipeline-step {
-    flex: 1;
+    flex: 1 1 calc(25% - 8px);
+    min-width: 140px;
     background: rgba(15, 23, 42, 0.6);
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 10px;
-    padding: 10px 14px;
+    padding: 8px 12px;
     text-align: left;
     transition: all 0.2s ease;
+}
+
+@media (max-width: 768px) {
+    .pipeline-step {
+        flex: 1 1 calc(50% - 8px);
+    }
 }
 
 .pipeline-step-active {
@@ -189,7 +222,7 @@ html, body, [class*="css"] {
 }
 
 .pipeline-step-title {
-    font-size: 0.76rem;
+    font-size: 0.72rem;
     font-weight: 700;
     color: #94A3B8;
     text-transform: uppercase;
@@ -201,31 +234,37 @@ html, body, [class*="css"] {
 }
 
 .pipeline-step-status {
-    font-size: 0.88rem;
+    font-size: 0.84rem;
     font-weight: 700;
     color: #F1F5F9;
     margin-top: 2px;
 }
 
-/* Evidence Card Display */
+/* Compact Evidence Card & Contained Image Dimensions */
 .evidence-card {
     background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.8) 100%);
     border: 1px solid rgba(59, 130, 246, 0.3);
     border-radius: 12px;
-    padding: 10px;
+    padding: 8px;
     text-align: center;
     position: relative;
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
 }
 
+.stImage img {
+    max-height: 220px !important;
+    object-fit: contain !important;
+    border-radius: 8px !important;
+}
+
 .evidence-tag {
-    font-size: 0.78rem;
+    font-size: 0.76rem;
     color: #93C5FD;
     font-weight: 700;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
 }
 
 /* Active Engine Pill */
