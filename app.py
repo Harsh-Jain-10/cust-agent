@@ -774,25 +774,25 @@ st.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
 
 
 # =====================================================================
-# 8. MULTI-IMAGE EVIDENCE ATTACHMENT CHAMBER (2 to 5 Images)
+# 8. EVIDENCE ATTACHMENT CHAMBER (1 to 2 Images)
 # =====================================================================
 num_attached = len(st.session_state.current_images)
 chamber_expanded = True if num_attached > 0 else False
 
-with st.expander(f"📷 Multi-Angle Evidence Chamber ({num_attached} / 5 Images Attached - Rule: 2 to 5 Images)", expanded=chamber_expanded):
+with st.expander(f"📷 Visual Evidence Chamber ({num_attached} / 2 Images Attached - Capacity: 1 to 2 Images)", expanded=chamber_expanded):
     col_cam, col_upload = st.columns([1, 1])
     
     with col_upload:
         uploaded_files = st.file_uploader(
-            "Select 2 to 5 Evidence Photos (PNG, JPG, JPEG, WEBP)",
+            "Select 1 or 2 Evidence Photos (PNG, JPG, JPEG, WEBP)",
             type=["png", "jpg", "jpeg", "webp"],
             accept_multiple_files=True,
-            help="Hold Ctrl/Cmd or select multiple files in your file dialog (attach between 2 and 5 images)."
+            help="Select 1 or 2 files (e.g. damaged item photo and invoice/serial tag)."
         )
         if uploaded_files:
-            if len(uploaded_files) > 5:
-                st.warning("⚠️ Maximum 5 images allowed. Only the first 5 images will be attached.", icon="⚠️")
-                uploaded_files = uploaded_files[:5]
+            if len(uploaded_files) > 2:
+                st.warning("⚠️ Maximum 2 images allowed. Only the first 2 images will be attached.", icon="⚠️")
+                uploaded_files = uploaded_files[:2]
                 
             new_imgs = []
             for f in uploaded_files:
@@ -808,8 +808,8 @@ with st.expander(f"📷 Multi-Angle Evidence Chamber ({num_attached} / 5 Images 
         if enable_cam:
             camera_file = st.camera_input("Capture item photo to add to evidence")
             if camera_file is not None:
-                if len(st.session_state.current_images) >= 5:
-                    st.warning("⚠️ Maximum 5 images already attached. Please remove an image before capturing another.")
+                if len(st.session_state.current_images) >= 2:
+                    st.warning("⚠️ Maximum 2 images already attached. Please remove an image before capturing another.")
                 else:
                     cam_img = Image.open(camera_file)
                     cam_name = f"webcam_angle_{len(st.session_state.current_images) + 1}_{int(time.time())}.png"
@@ -820,23 +820,21 @@ with st.expander(f"📷 Multi-Angle Evidence Chamber ({num_attached} / 5 Images 
     # Visual Evidence Validation Banner
     curr_count = len(st.session_state.current_images)
     if curr_count == 0:
-        st.info("💡 **Evidence Requirement:** Please upload **at least 2 and at most 5 images** (e.g. damaged item photo + invoice / receipt) or click a **Demo Preset** on the sidebar.", icon="ℹ️")
-    elif curr_count == 1:
-        st.warning("⚠️ **1 Image Attached:** Standard multi-angle diagnostic protocol recommends **at least 2 images** (damaged item + proof of purchase/serial tag) for complete cross-verification.", icon="📸")
-    elif 2 <= curr_count <= 5:
-        st.success(f"✅ **Multi-Angle Evidence Ready:** {curr_count} evidence files attached (Within 2 to 5 image limit).", icon="🎯")
+        st.info("💡 **Evidence Attachment:** You can attach **1 or 2 images** (e.g. damaged product photo and/or invoice receipt) or click a **Demo Preset** on the sidebar.", icon="ℹ️")
+    elif 1 <= curr_count <= 2:
+        st.success(f"✅ **Evidence Ready:** {curr_count} visual file(s) attached (Within 1 to 2 image limit).", icon="🎯")
     else:
-        st.error(f"🚫 **Too many images ({curr_count}):** Please keep attached images between 2 and 5.", icon="🛑")
+        st.error(f"🚫 **Too many images ({curr_count}):** Please keep attached images between 1 and 2.", icon="🛑")
 
     # Render Multi-Image Gallery Grid
     if st.session_state.current_images:
         st.markdown("---")
         st.markdown("##### 🔍 Attached Visual Evidence Gallery")
         
-        cols = st.columns(min(max(len(st.session_state.current_images), 1), 5))
+        cols = st.columns(max(len(st.session_state.current_images), 1))
         for i, img_data in enumerate(st.session_state.current_images):
             with cols[i % len(cols)]:
-                st.markdown(f"<div class='evidence-card'><div class='evidence-tag'>Angle {i+1}: {img_data['name']}</div></div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='evidence-card'><div class='evidence-tag'>Image {i+1}: {img_data['name']}</div></div>", unsafe_allow_html=True)
                 st.image(img_data["image"], use_container_width=True)
                 if st.button(f"❌ Remove #{i+1}", key=f"del_img_{i}", use_container_width=True):
                     st.session_state.current_images.pop(i)
@@ -856,7 +854,7 @@ if not st.session_state.messages:
         **Hello! I'm OmniSupport AI**, your multimodal visual diagnostics and warranty specialist.
         
         How can I help you today?
-        - 📸 **Attach 2 to 5 photos** (physical damage, invoice/receipt, serial number tag) in the Evidence Chamber above.
+        - 📸 **Attach 1 or 2 photos** (physical damage, invoice/receipt, serial number tag) in the Evidence Chamber above.
         - 💬 Ask a question or use the **Quick Prompts** below or **Multi-Angle Presets** in the sidebar.
         """)
 
@@ -879,7 +877,7 @@ with qc1:
     if st.button("🔍 Cross-Verify Claim & Receipt", use_container_width=True):
         preset_triggered = "Can you cross-reference the physical damage with my invoice/receipt to check return or warranty claim eligibility?"
 with qc2:
-    if st.button("🛠️ Multi-Angle Diagnosis", use_container_width=True):
+    if st.button("🛠️ Visual Diagnosis", use_container_width=True):
         preset_triggered = "Please inspect all attached evidence photos and provide step-by-step diagnostic troubleshooting."
 with qc3:
     if st.button("🧾 Audit Invoice & SKU", use_container_width=True):
@@ -905,8 +903,8 @@ if final_prompt:
         st.error("🔑 Please provide a valid Google Gemini API Key in the sidebar or .env file to proceed.", icon="🚨")
     else:
         attached_count = len(st.session_state.current_images)
-        if attached_count > 5:
-            st.error("🛑 Please remove excess images so that at most 5 images are attached.", icon="🛑")
+        if attached_count > 2:
+            st.error("🛑 Please remove excess images so that at most 2 images are attached.", icon="🛑")
             st.stop()
             
         img_names = [img["name"] for img in st.session_state.current_images]
